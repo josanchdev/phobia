@@ -10,8 +10,8 @@ This section documents the map and entity system used by the project. The world 
 
 - The game world is built from two complementary file types:
 	- `.cub` — a visual 2D grid that defines layout and places objects.
-	- `.json` — a companion file that provides parameters for dynamic entities (enemies, lights, etc.).
-- Only one map is loaded at a time. You can keep multiple `.cub` files in the assets folder for selection from a menu.
+	- `.json` — A companion file that provides stat definitions for the types of entities found in the map (e.g., how fast a "Zombie" is, what color a "Lamp" is).
+- Only one map is loaded at a time
 
 ### 2. Map file (`.cub`)
 
@@ -33,7 +33,7 @@ Legend:
 | `1`    | Wall block                      |
 | `0`    | Floor (walkable)                |
 | `N`    | Player spawn (facing North)     |
-| `E`    | Enemy (zombie)                  |
+| `Z`    | Enemy (zombie)                  |
 | `B`    | Enemy (bat)                     |
 | `L`    | Light source                    |
 | `S`    | Spike trap (lower floor height) |
@@ -44,42 +44,49 @@ Notes:
 
 ### 3. Entities file (`.json`)
 
-Each `.cub` map has a companion JSON file that defines parameters for dynamic elements in the same order they appear in the `.cub`. This keeps layout and tuning separate.
+Unlike the previous iteration, this JSON file does not list every single enemy instance. Instead, it defines the Archetypes (Types). When the map loader finds a 'Z', it looks up the "zombie" config in this file to know how fast it should be or what texture to load.
 
-Example — `map1_entities.json`:
+Example — `map1_config.json`:
 
 ```json
 {
-	"enemies": [
-		{ "type": "zombie", "speed": 1.2, "patrol": [[2,3], [2,6], [5,6]] },
-		{ "type": "bat",    "speed": 3.0, "patrol": [[3,4], [8,4]] }
-	],
-	"lights": [
-		{ "intensity": 1.0, "color": [255, 220, 180] }
-	]
+    "definitions": {
+        "zombie": {
+            "map_token": "Z",
+            "mesh": "zombie_parts.obj",
+            "speed": 1.5,
+            "hp": 100,
+            "behavior": "chase"
+        },
+        "bat": {
+            "map_token": "B",
+            "mesh": "bat.obj",
+            "speed": 3.5,
+            "hp": 20,
+            "behavior": "random_patrol"
+        },
+        "ceiling_lamp": {
+            "map_token": "L",
+            "color": [0.9, 0.8, 0.6],
+            "intensity": 0.8,
+            "flicker": true
+        }
+    }
 }
 ```
 
-Notes:
-- The `enemies` array aligns with the `E`, `B`, ... tokens in the `.cub` file in reading order. The map loader uses an index per token type when spawning.
-- Lights and other dynamic objects are described similarly in arrays (e.g., `lights`).
-
 ### 4. How it works in code
 
-The loader (`map.cpp`) performs two reads: the `.cub` layout and the matching `.json` entities file. When it encounters a dynamic token, it pulls the next entry from the relevant JSON array and spawns the object at the grid coordinate.
+The loader (`map.cpp`) reads the `.cub` file character by character.
+It loads the JSON config into a map/dictionary in memory.When it hits a token (e.g., 'Z'):
+	It looks up the definition associated with 'Z'.
+	It instantiates a new Enemy object at that $(x, y)$ coordinate.
+	It applies the stats (Speed: 1.5) from the JSON to that specific instance.
+This allows us to place 50 Zombies in the map file without writing 50 entries in the JSON file.
 
-Pseudo-C++ example:
-
-```cpp
-// inside map loader loop
-if (cell == 'E') spawnEnemy(jsonEnemies[eIndex++], x, y);
-if (cell == 'B') spawnEnemy(jsonEnemies[bIndex++], x, y);
-if (cell == 'L') spawnLight(jsonLights[lIndex++], x, y);
-```
-
-Each spawn function constructs the correct subclass (for example `Zombie` or `Bat` inheriting from `Enemy`) and initializes it using the JSON parameters.
-
+5. Articulated System ProposalsTo satisfy the course requirement for a "System composed of various articulated objects"3, the project will implement one of the following hierarchical models. These objects rely on parent-child matrix transformations (scene graph), not just loading a single mesh.Option A: The "Watcher" (Mechanical Ceiling Trap)A security camera/turret attached to the ceiling that tracks the player.Hierarchy: Base (Static) $\rightarrow$ Swivel Joint (Rotate Y) $\rightarrow$ Arm (Rotate X) $\rightarrow$ Camera Head.Movement: Automatic. The code calculates the vector to the player and updates the joint rotation matrices to keep the head pointed at the target.Horror Element: It emits a red spotlight. If the light touches the player, an alarm triggers.Option B: The Clockwork Spider (Enemy)A mechanical enemy built from primitive shapes or separated mesh parts.Hierarchy: Thorax (Root) $\rightarrow$ Hip Joint $\rightarrow$ Upper Leg $\rightarrow$ Knee Joint $\rightarrow$ Lower Leg.Movement: Procedural animation. As the enemy moves across the floor, the legs cycle through sine-wave rotations to simulate walking.Horror Element: fast, skittering movement sounds.Option C: The "Iron Maiden" Gate (Interactive Object)A heavy door mechanism that requires gears to open.Hierarchy: Door Frame $\rightarrow$ Gear A $\rightarrow$ Gear B $\rightarrow$ Locking Bars.Movement: Interactive. When the player holds a lever, Gear A rotates, driving Gear B (inverse rotation), which translates the Locking Bars to unlock the path.(Current Plan: Implement Option A as it doubles as a lighting mechanic, satisfying multiple requirements).
 ### 5. Project folder structure
+
 
 Example layout inside the repository:
 
