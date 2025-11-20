@@ -84,8 +84,51 @@ It loads the JSON config into a map/dictionary in memory.When it hits a token (e
 	It applies the stats (Speed: 1.5) from the JSON to that specific instance.
 This allows us to place 50 Zombies in the map file without writing 50 entries in the JSON file.
 
-5. Articulated System ProposalsTo satisfy the course requirement for a "System composed of various articulated objects"3, the project will implement one of the following hierarchical models. These objects rely on parent-child matrix transformations (scene graph), not just loading a single mesh.Option A: The "Watcher" (Mechanical Ceiling Trap)A security camera/turret attached to the ceiling that tracks the player.Hierarchy: Base (Static) $\rightarrow$ Swivel Joint (Rotate Y) $\rightarrow$ Arm (Rotate X) $\rightarrow$ Camera Head.Movement: Automatic. The code calculates the vector to the player and updates the joint rotation matrices to keep the head pointed at the target.Horror Element: It emits a red spotlight. If the light touches the player, an alarm triggers.Option B: The Clockwork Spider (Enemy)A mechanical enemy built from primitive shapes or separated mesh parts.Hierarchy: Thorax (Root) $\rightarrow$ Hip Joint $\rightarrow$ Upper Leg $\rightarrow$ Knee Joint $\rightarrow$ Lower Leg.Movement: Procedural animation. As the enemy moves across the floor, the legs cycle through sine-wave rotations to simulate walking.Horror Element: fast, skittering movement sounds.Option C: The "Iron Maiden" Gate (Interactive Object)A heavy door mechanism that requires gears to open.Hierarchy: Door Frame $\rightarrow$ Gear A $\rightarrow$ Gear B $\rightarrow$ Locking Bars.Movement: Interactive. When the player holds a lever, Gear A rotates, driving Gear B (inverse rotation), which translates the Locking Bars to unlock the path.(Current Plan: Implement Option A as it doubles as a lighting mechanic, satisfying multiple requirements).
-### 5. Project folder structure
+# 5. Articulated System Proposals
+
+To satisfy the course requirement for a "System composed of various articulated objects", the project will implement one of the following hierarchical models. These objects rely on parent–child matrix transformations (a scene graph), not just loading a single mesh.
+
+Current plan: **Implement Option A** — it doubles as a lighting mechanic and satisfies multiple requirements.
+
+---
+
+## Option A — The "Watcher" (Mechanical Ceiling Trap)
+
+- **Overview:** A ceiling-mounted security camera / turret that tracks the player.
+- **Hierarchy:** Base (static) → Swivel Joint (rotate Y) → Arm (rotate X) → Camera Head
+- **Movement:** Automatic tracking. The code computes the vector to the player and updates the joint rotation matrices each frame so the head remains pointed at the target.
+- **Horror element:** Emits a red spotlight. If the spotlight touches the player, an alarm triggers (and potentially other consequences).
+- **Notes:** Good fit for demonstrating scene-graph transforms and shader-driven lighting effects (spotlight cone, falloff, and detection).
+
+---
+
+## Option B — The Clockwork Spider (Enemy)
+
+- **Overview:** A mechanical spider enemy assembled from primitives or separate mesh parts.
+- **Hierarchy:** Thorax (root) → Hip Joint → Upper Leg → Knee Joint → Lower Leg
+- **Movement:** Procedural animation driven by cyclic functions (e.g., sine waves) to rotate leg joints and simulate walking.
+- **Horror element:** Fast, skittering movement and unsettling mechanical sounds.
+- **Notes:** Demonstrates hierarchical kinematics and procedural animation; adds emergent locomotion behavior.
+
+---
+
+## Option C — The "Iron Maiden" Gate (Interactive Object)
+
+- **Overview:** A heavy door / gating mechanism that uses gears to open and close.
+- **Hierarchy:** Door Frame → Gear A → Gear B → Locking Bars
+- **Movement:** Interactive: when the player holds a lever, Gear A rotates, driving Gear B (inverse rotation), which translates the locking bars to unlock the passage.
+- **Horror element:** Slow, suspenseful mechanical action — can be used to gate player progress or trigger scares when opening.
+- **Notes:** Demonstrates parent-child rotations with mechanical coupling and player-driven interactions.
+
+---
+
+### Implementation considerations (common to all options)
+
+- Use a scene graph to propagate transforms from parent to child (local → world matrices).
+- Expose joint limits and smooth interpolation (e.g., slerp / damped rotation) to avoid instant snapping.
+- Provide authoring-friendly parameters (rotation limits, speeds, sound triggers) in JSON so designers can tweak behavior without rebuilding.
+- Option A is prioritized because it also ties into the lighting system (spotlight detection + alarm), covering multiple course objectives.
+```
 
 
 Example layout inside the repository:
